@@ -4,3 +4,6 @@ http request parsing is also left for soon.
 
 mhttp.m will be renamed to http.m later, after i have replaced a
 previous version locally.
+
+to use, make a "mkconfig" (symlink/bind the one from your inferno install
+here) and "mk install".
