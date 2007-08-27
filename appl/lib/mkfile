@@ -1,0 +1,15 @@
+<../../mkconfig
+
+TARG=\
+	mhttp.dis\
+
+MODULES=\
+
+SYSMODULES=\
+	sys.m\
+	bufio.m\
+	mhttp.m
+
+DISBIN=$ROOT/dis/lib
+
+<$ROOT/mkfiles/mkdis

@@ -1,0 +1,6 @@
+http library
+http client library and http fetcher will follow later.
+http request parsing is also left for soon.
+
+mhttp.m will be renamed to http.m later, after i have replaced a
+previous version locally.
