@@ -27,7 +27,7 @@ prefix: import str;
 sprint, fprint, print, FileIO: import sys;
 
 methods := array[] of {"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "TRACE", "CONNECT", "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE", "LOCK", "UNLOCK"};
-httpversions := array[] of {"HTTP/1.0", "HTTP/1.1"};
+versions := array[] of {"HTTP/1.0", "HTTP/1.1"};
 bodymethods := array[] of {POST, PUT, DELETE, PROPFIND, MKCOL};
 unsafemethods := array[] of {POST, PUT, DELETE, MKCOL, MOVE, PROPPATCH};
 
@@ -358,7 +358,7 @@ Req.pack(r: self ref Req): string
 	path := r.url.packpath();
 	if(r.proxyaddr != nil)
 		path = r.url.pack();
-	q := sprint("%s %s %s\r\n", methods[r.method], path, httpversions[r.version]);
+	q := sprint("%s %s %s\r\n", methods[r.method], path, versions[r.version]);
 
 	if(!r.h.has("Host", nil))
 		q += sprint("Host: %s\r\n", r.url.host);
@@ -384,8 +384,42 @@ Req.write(r: self ref Req, fd: ref Sys->FD): string
 
 Req.read(b: ref Iobuf): (ref Req, string)
 {
-	b = nil;
-	return (nil, "xxx");
+	(eof, l) := hgetline(b);
+	if(eof)
+		return (nil, "eof reading request");
+
+	meth, urlstr, vers: string;
+	(meth, l) = str->splitstrl(l, " ");
+	if(l == nil)
+		return (nil, "bad request line");
+	l = l[1:];
+	(l, vers) = str->splitstrr(l, " ");
+	if(l == nil)
+		return (nil, "bad request line");
+	l = l[:len l-1];
+	urlstr = l;
+
+	method := -1;
+	for(i := 0; i < len methods && method == -1; i++)
+		if(meth == methods[i])
+			method = i;
+	if(method == -1)
+		return (nil, "unknown method");
+
+	version := -1;
+	for(i = 0; i < len versions && version == -1; i++)
+		if(vers == versions[i])
+			version = i;
+	if(version == -1)
+		return (nil, "unknown http version");
+	(u, err) := Url.unpack(urlstr);
+	if(err != nil)
+		return (nil, "bad url: "+err);
+	(h, herr) := readheaders(b);
+	if(herr != nil)
+		return (nil, "bad headers: "+herr);
+
+	return (ref Req(method, u, version, h, nil, nil), nil);
 }
 
 nfc := 0;
@@ -422,7 +456,7 @@ status(r: ref Resp): string
 
 Resp.pack(r: self ref Resp): string
 {
-	q := sprint("%s %s %s\r\n", httpversions[r.version], r.st, r.stmsg);
+	q := sprint("%s %s %s\r\n", versions[r.version], r.st, r.stmsg);
 	for(l := r.h.all(); l != nil; l = tl l)
 		q += sprint("%s: %s\r\n", (hd l).t0, (hd l).t1);
 	q += "\r\n";
