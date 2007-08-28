@@ -426,6 +426,8 @@ nfc := 0;
 Req.dial(r: self ref Req): (ref Sys->FD, string)
 {
 	addr := r.url.addr();
+	if(r.proxyaddr != nil)
+		addr = r.proxyaddr;
 	(ok, conn) := sys->dial(addr, nil);
 	if(ok < 0)
 		return (nil, sprint("dial %s: %r", addr));
