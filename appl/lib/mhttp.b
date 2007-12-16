@@ -233,6 +233,11 @@ suffix(suf, s: string): int
 	return len suf <= len s && suf == s[len s-len suf:];
 }
 
+strip(s, cl: string): string
+{
+	return droptl(str->drop(s, cl), cl);
+}
+
 droptl(s, pat: string): string
 {
 	while(s != nil && str->in(s[len s-1], pat))
@@ -309,15 +314,16 @@ Hdrs.read(b: ref Iobuf): (ref Hdrs, string)
 		if(l[0] == ' ' || l[0] == '\t') {
 			if(h.l == nil)
 				return (h, "first header claims to be continuation header, not possible");
-			l = droptl(str->drop(l, " \t"), " \t");
 			hh := hd h.l;
-			h.l = (hh.t0, hh.t1+" "+l)::tl h.l;
+			hh = (hh.t0, strip(hh.t1+" "+l, " \t"));
+			h.l = hh::tl h.l;
+			say(sprint("Hdrs.read: continued, now: %q: %q", hh.t0, hh.t1));
 			continue;
 		}
 		(k, v) := str->splitl(l, ":");
 		if(v == nil)
-			return (h, "bad header from server: "+l);
-		v = droptl(str->drop(v[1:], " \t"), " \t");
+			return (h, "bad header line: "+l);
+		v = strip(v[1:], " \t");
 		h.add(k, v);
 		say(sprint("Hdrs.read: new: %q: %q", k, v));
 	}
@@ -625,7 +631,7 @@ fcchunked(fio: ref FileIO, b: ref Iobuf)
 				}
 			}
 			(l, nil) = str->splitl(l, ";");
-			l = droptl(str->drop(l, " \t"), " \t");
+			l = strip(l, " \t");
 			#say("new chunk: "+l);
 			if(l != "0") {
 				rem: string;

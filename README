@@ -7,3 +7,6 @@ previous version locally.
 
 to use, make a "mkconfig" (symlink/bind the one from your inferno install
 here) and "mk install".
+
+
+todo:
