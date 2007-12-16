@@ -76,6 +76,7 @@ Http: module {
 		find:	fn(h: self ref Hdrs, k: string): (int, string);
 		findall:	fn(h: self ref Hdrs, k: string): list of string;
 		get:	fn(h: self ref Hdrs, k: string): string;
+		getlist:	fn(h: self ref Hdrs, k: string): string;
 		has:	fn(h: self ref Hdrs, k, v: string): int;
 		all:	fn(h: self ref Hdrs): list of (string, string);
 	};

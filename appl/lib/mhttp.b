@@ -376,13 +376,21 @@ Hdrs.findall(h: self ref Hdrs, k: string): list of string
 
 Hdrs.get(h: self ref Hdrs, k: string): string
 {
-	l := h.findall(k);
-	if(l == nil)
-		return "missing header: "+k;
+	return h.find(k).t1;
+}
+
+# get comma-separated list
+Hdrs.getlist(h: self ref Hdrs, k: string): string
+{
 	s := "";
-	for(; l != nil; l = tl l)
-		s += " "+hd l;
-	return s[1:];
+	for(l := h.findall(k); l != nil; l = tl l) {
+		e := strip(hd l, " \t");
+		if(e != nil)
+			s += ", "+e;
+	}
+	if(s != nil)
+		s = s[2:];
+	return s;
 }
 
 Hdrs.has(h: self ref Hdrs, k, v: string): int
