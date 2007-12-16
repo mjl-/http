@@ -21,6 +21,9 @@ Http: module {
 
 	isidempotent:	fn(method: int): int;
 
+	methodstr:	fn(method: int): string;
+	versionstr:	fn(version: int): string;
+
 	Url: adt {
 		usessl: int;
 		scheme, host, port, path, query: string;
@@ -34,34 +37,39 @@ Http: module {
 	Req: adt {
 		method:	int;
 		url:	ref Url;
-		version:	int;
+		major, minor:	int;
 		h:	ref Hdrs;
 
 		body:	array of byte;
 		proxyaddr:	string;
 
+		mk:	fn(method: int, url: ref Url, version: int, h: ref Hdrs): ref Req;
 		pack:	fn(r: self ref Req): string;
 		write:	fn(r: self ref Req, fd: ref Sys->FD): string;
 		read:	fn(b: ref Iobuf): (ref Req, string);
 		dial:	fn(u: self ref Req): (ref Sys->FD, string);
+		version:	fn(r: self ref Req): int;
 	};
 
 	Resp: adt {
-		version:	int;
+		major, minor:	int;
 		st, stmsg:	string;
 		h:	ref Hdrs;
 
+		mk:	fn(version: int, st, stmsg: string, h: ref Hdrs): ref Resp;
 		pack:	fn(r: self ref Resp): string;
 		write:	fn(r: self ref Resp, fd: ref Sys->FD): string;
 		read:	fn(b: ref Iobuf): (ref Resp, string);
 		hasbody:	fn(r: self ref Resp, reqmethod: int): int;
 		body:	fn(r: self ref Resp, b: ref Iobuf): (ref Sys->FD, string);
+		version:	fn(r: self ref Resp): int;
 	};
 
 	Hdrs: adt {
 		l:	list of (string, string);
 
 		new:	fn(l: list of (string, string)): ref Hdrs;
+		read:	fn(b: ref Iobuf): (ref Hdrs, string);
 		set:	fn(h: self ref Hdrs, k, v: string);
 		add:	fn(h: self ref Hdrs, k, v: string);
 		del:	fn(h: self ref Hdrs, k, v: string);

@@ -95,6 +95,16 @@ isidempotent(method: int): int
 	return 0;
 }
 
+methodstr(method: int): string
+{
+	return methods[method];
+}
+
+versionstr(version: int): string
+{
+	return versions[version];
+}
+
 Url.unpack(s: string): (ref Url, string)
 {
 	scheme := "http";
@@ -250,7 +260,44 @@ hgetline(b: ref Iobuf): (int, string)
 	return (eof, l);
 }
 
-readheaders(b: ref Iobuf): (ref Hdrs, string)
+parseversion(s, line: string): (int, int, string)
+{
+	if(!str->prefix("HTTP/", s))
+		return (0, 0, "bad http version line: "+line);
+	s = s[len "HTTP/":];
+	(majorstr, minorstr) := str->splitstrl(s, ".");
+	if(minorstr == nil)
+		return (0, 0, "bad http version line: "+line);
+	minorstr = minorstr[1:];
+	if(majorstr == "" || minorstr == "" || str->drop(majorstr, "0-9") != "" || str->drop(minorstr, "0-9") != "")
+		return (0, 0, "bad http version: "+line);
+	return (int majorstr, int minorstr, nil);
+}
+
+toversion(major, minor: int): int
+{
+	if(major == 1 && minor == 0)
+		return HTTP_10;
+	if(major == 1 && minor >= 1)
+		return HTTP_11;
+	raise sprint("unsupported http version: HTTP/%d.%d", major, minor);
+}
+
+fromversion(vers: int): (int, int)
+{
+	case vers {
+	HTTP_10 =>	return (1, 0);
+	HTTP_11 =>	return (1, 1);
+	}
+	raise "bad version value";
+}
+
+Hdrs.new(l: list of (string, string)): ref Hdrs
+{
+	return ref Hdrs(l);
+}
+
+Hdrs.read(b: ref Iobuf): (ref Hdrs, string)
 {
 	h := Hdrs.new(nil);
 	for(;;) {
@@ -272,14 +319,9 @@ readheaders(b: ref Iobuf): (ref Hdrs, string)
 			return (h, "bad header from server: "+l);
 		v = droptl(str->drop(v[1:], " \t"), " \t");
 		h.add(k, v);
-		say(sprint("readheaders: new: %q: %q", k, v));
+		say(sprint("Hdrs.read: new: %q: %q", k, v));
 	}
 	return (h, nil);
-}
-
-Hdrs.new(l: list of (string, string)): ref Hdrs
-{
-	return ref Hdrs(l);
 }
 
 Hdrs.set(h: self ref Hdrs, k, v: string)
@@ -353,12 +395,18 @@ Hdrs.all(h: self ref Hdrs): list of (string, string)
 }
 
 
+Req.mk(method: int, url: ref Url, version: int, h: ref Hdrs): ref Req
+{
+	(major, minor) := fromversion(version);
+	return ref Req(method, url, major, minor, h, nil, nil);
+}
+
 Req.pack(r: self ref Req): string
 {
 	path := r.url.packpath();
 	if(r.proxyaddr != nil)
 		path = r.url.pack();
-	q := sprint("%s %s %s\r\n", methods[r.method], path, versions[r.version]);
+	q := sprint("%s %s HTTP/%d.%d\r\n", methods[r.method], path, r.major, r.minor);
 
 	if(!r.h.has("Host", nil))
 		q += sprint("Host: %s\r\n", r.url.host);
@@ -406,20 +454,17 @@ Req.read(b: ref Iobuf): (ref Req, string)
 	if(method == -1)
 		return (nil, "unknown method");
 
-	version := -1;
-	for(i = 0; i < len versions && version == -1; i++)
-		if(vers == versions[i])
-			version = i;
-	if(version == -1)
-		return (nil, "unknown http version");
+	(major, minor, verr) := parseversion(vers, l);
+	if(verr != nil)
+		return (nil, verr);
 	(u, err) := Url.unpack(urlstr);
 	if(err != nil)
 		return (nil, "bad url: "+err);
-	(h, herr) := readheaders(b);
+	(h, herr) := Hdrs.read(b);
 	if(herr != nil)
 		return (nil, "bad headers: "+herr);
 
-	return (ref Req(method, u, version, h, nil, nil), nil);
+	return (ref Req(method, u, major, minor, h, nil, nil), nil);
 }
 
 nfc := 0;
@@ -435,6 +480,11 @@ Req.dial(r: self ref Req): (ref Sys->FD, string)
 	if(r.url.usessl)
 		return pushssl(conn.dfd, addr);
 	return (conn.dfd, nil);
+}
+
+Req.version(r: self ref Req): int
+{
+	return toversion(r.major, r.minor);
 }
 
 status(r: ref Resp): string
@@ -456,9 +506,15 @@ status(r: ref Resp): string
 }
 
 
+Resp.mk(version: int, st, stmsg: string, h: ref Hdrs): ref Resp
+{
+	(major, minor) := fromversion(version);
+	return ref Resp(major, minor, st, stmsg, h);
+}
+
 Resp.pack(r: self ref Resp): string
 {
-	q := sprint("%s %s %s\r\n", versions[r.version], r.st, r.stmsg);
+	q := sprint("HTTP/%d.%d %s %s\r\n", r.major, r.minor, r.st, r.stmsg);
 	for(l := r.h.all(); l != nil; l = tl l)
 		q += sprint("%s: %s\r\n", (hd l).t0, (hd l).t1);
 	q += "\r\n";
@@ -478,13 +534,10 @@ Resp.read(b: ref Iobuf): (ref Resp, string)
 	if(eof)
 		return (nil, "eof reading http response line");
 
-	vers: int;
 	(s, rem) := str->splitl(l, " ");
-	case s {
-	"HTTP/1.0" =>	vers = HTTP_10;
-	"HTTP/1.1" =>	vers = HTTP_11;
-	* =>		return (nil, "unrecognized http version: "+l);
-	}
+	(major, minor, verr) := parseversion(s, l);
+	if(verr != nil)
+		return (nil, verr);
 	if(rem == nil)
 		return (nil, "missing response code: "+l);
 	(st, stmsg) := str->splitl(rem[1:], " ");
@@ -493,10 +546,10 @@ Resp.read(b: ref Iobuf): (ref Resp, string)
 	if(stmsg != nil)
 		stmsg = stmsg[1:];
 
-	(h, err) := readheaders(b);
+	(h, err) := Hdrs.read(b);
 	if(err != nil)
 		return (nil, err);
-	return (ref Resp(vers, st, stmsg, h), nil);
+	return (ref Resp(major, minor, st, stmsg, h), nil);
 }
 
 Resp.hasbody(r: self ref Resp, reqmethod: int): int
@@ -530,6 +583,11 @@ Resp.body(r: self ref Resp, b: ref Iobuf): (ref Sys->FD, string)
 	if(err != nil)
 		return (nil, err);
 	return (fd, nil);
+}
+
+Resp.version(r: self ref Resp): int
+{
+	return toversion(r.major, r.minor);
 }
 
 pushchunked(b: ref Iobuf): (ref Sys->FD, string)
