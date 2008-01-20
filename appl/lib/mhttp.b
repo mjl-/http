@@ -128,7 +128,7 @@ Url.unpack(s: string): (ref Url, string)
 	(path, query) = str->splitl(path, "?");
 	if(path == "")
 		path = "/";
-	return (ref Url(usessl, scheme, host, port, decode(path), decode(query)), nil);
+	return (ref Url(usessl, scheme, host, port, decode(path), query), nil);
 }
 
 Url.pack(u: self ref Url): string
@@ -144,10 +144,7 @@ Url.pack(u: self ref Url): string
 
 Url.packpath(u: self ref Url): string
 {
-	query := u.query;
-	if(query != nil)
-		query = query[:1]+encodequery(query[1:]);
-	return encodepath(u.path)+query;
+	return encodepath(u.path)+u.query;
 }
 
 Url.addr(u: self ref Url): string
