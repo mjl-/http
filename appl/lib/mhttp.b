@@ -463,7 +463,7 @@ Req.read(b: ref Iobuf): (ref Req, string)
 		if(meth == methods[i])
 			method = i;
 	if(method == -1)
-		return (nil, "unknown method");
+		return (nil, sprint("unknown method: %q", meth));
 
 	(major, minor, verr) := parseversion(vers, l);
 	if(verr != nil)
