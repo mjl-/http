@@ -265,14 +265,14 @@ hgetline(b: ref Iobuf): (int, string)
 parseversion(s, line: string): (int, int, string)
 {
 	if(!str->prefix("HTTP/", s))
-		return (0, 0, "bad http version line: "+line);
+		return (0, 0, sprint("bad http version line: %q", line));
 	s = s[len "HTTP/":];
 	(majorstr, minorstr) := str->splitstrl(s, ".");
 	if(minorstr == nil)
-		return (0, 0, "bad http version line: "+line);
+		return (0, 0, sprint("bad http version line: %q", line));
 	minorstr = minorstr[1:];
 	if(majorstr == "" || minorstr == "" || str->drop(majorstr, "0-9") != "" || str->drop(minorstr, "0-9") != "")
-		return (0, 0, "bad http version: "+line);
+		return (0, 0, sprint("bad http version: %q", line));
 	return (int majorstr, int minorstr, nil);
 }
 
@@ -319,7 +319,7 @@ Hdrs.read(b: ref Iobuf): (ref Hdrs, string)
 		}
 		(k, v) := str->splitl(l, ":");
 		if(v == nil)
-			return (h, "bad header line: "+l);
+			return (h, sprint("bad header line: %q", l));
 		v = strip(v[1:], " \t");
 		h.add(k, v);
 		say(sprint("Hdrs.read: new: %q: %q", k, v));
@@ -447,14 +447,15 @@ Req.read(b: ref Iobuf): (ref Req, string)
 	if(eof)
 		return (nil, "eof reading request");
 
+	origl := l;
 	meth, urlstr, vers: string;
 	(meth, l) = str->splitstrl(l, " ");
 	if(l == nil)
-		return (nil, "bad request line");
+		return (nil, sprint("bad request line: %q", origl));
 	l = l[1:];
 	(l, vers) = str->splitstrr(l, " ");
 	if(l == nil)
-		return (nil, "bad request line");
+		return (nil, sprint("bad request line: %q", origl));
 	l = l[:len l-1];
 	urlstr = l;
 
@@ -465,7 +466,7 @@ Req.read(b: ref Iobuf): (ref Req, string)
 	if(method == -1)
 		return (nil, sprint("unknown method: %q", meth));
 
-	(major, minor, verr) := parseversion(vers, l);
+	(major, minor, verr) := parseversion(vers, origl);
 	if(verr != nil)
 		return (nil, verr);
 	(u, err) := Url.unpack(urlstr);
@@ -487,7 +488,7 @@ Req.dial(r: self ref Req): (ref Sys->FD, string)
 	(ok, conn) := sys->dial(addr, nil);
 	if(ok < 0)
 		return (nil, sprint("dial %s: %r", addr));
-	say("dial: dialed "+addr);
+	say(sprint("dial: dialed %q", addr));
 	if(r.url.usessl)
 		return pushssl(conn.dfd, addr);
 	return (conn.dfd, nil);
@@ -550,10 +551,10 @@ Resp.read(b: ref Iobuf): (ref Resp, string)
 	if(verr != nil)
 		return (nil, verr);
 	if(rem == nil)
-		return (nil, "missing response code: "+l);
+		return (nil, sprint("missing response code: %q", l));
 	(st, stmsg) := str->splitl(rem[1:], " ");
 	if(len st != 3 || str->take(st, "0-9") != st)
-		return (nil, "bad response status: "+l);
+		return (nil, sprint("bad response status: %q", l));
 	if(stmsg != nil)
 		stmsg = stmsg[1:];
 
@@ -589,7 +590,7 @@ Resp.body(r: self ref Resp, b: ref Iobuf): (ref Sys->FD, string)
 		case str->tolower(v) {
 		"gzip" =>	(fd, err) = pushinflate(fd, 1);
 		"deflate" =>	(fd, err) = pushinflate(fd, 0);
-		* =>		return (nil, "unknown content-encoding: "+v);
+		* =>		return (nil, sprint("unknown content-encoding: %q", v));
 		}
 	if(err != nil)
 		return (nil, err);
@@ -642,7 +643,7 @@ fcchunked(fio: ref FileIO, b: ref Iobuf)
 				rem: string;
 				(clen, rem) = str->toint(l, 16);
 				if(l == "" || rem != nil) {
-					rc <-= (nil, "bad chunk length: "+l);
+					rc <-= (nil, sprint("bad chunk length: %q", l));
 					return;
 				}
 				#say(sprint("clen now %d", clen));
