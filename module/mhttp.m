@@ -5,7 +5,7 @@ Http: module {
 	debug:	int;
 
 	HTTP_10, HTTP_11:	con iota;
-	OPTIONS, GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT, PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK:	con iota;
+	UNKNOWN, OPTIONS, GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT, PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK:	con iota;
 
 	#get:	fn(url: ref Url, hdrs: list of (string, string)): (ref Rbuf, string);
 	#post:	fn(url: ref Url, hdrs: list of (string, string), data: array of byte): (ref Rbuf, string);
@@ -36,6 +36,7 @@ Http: module {
 
 	Req: adt {
 		method:	int;
+		methodstr: string;
 		url:	ref Url;
 		major, minor:	int;
 		h:	ref Hdrs;

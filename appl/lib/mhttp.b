@@ -26,7 +26,7 @@ Context: import ssl3;
 prefix: import str;
 sprint, fprint, print, FileIO: import sys;
 
-methods := array[] of {"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "TRACE", "CONNECT", "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE", "LOCK", "UNLOCK"};
+methods := array[] of {"<UNKNOWN>", "OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "TRACE", "CONNECT", "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE", "LOCK", "UNLOCK"};
 versions := array[] of {"HTTP/1.0", "HTTP/1.1"};
 bodymethods := array[] of {POST, PUT, DELETE, PROPFIND, MKCOL};
 unsafemethods := array[] of {POST, PUT, DELETE, MKCOL, MOVE, PROPPATCH};
@@ -409,7 +409,7 @@ Hdrs.all(h: self ref Hdrs): list of (string, string)
 Req.mk(method: int, url: ref Url, version: int, h: ref Hdrs): ref Req
 {
 	(major, minor) := fromversion(version);
-	return ref Req(method, url, major, minor, h, nil, nil);
+	return ref Req(method, methods[method], url, major, minor, h, nil, nil);
 }
 
 Req.pack(r: self ref Req): string
@@ -459,16 +459,18 @@ Req.read(b: ref Iobuf): (ref Req, string)
 	l = l[:len l-1];
 	urlstr = l;
 
-	method := -1;
-	for(i := 0; i < len methods && method == -1; i++)
-		if(meth == methods[i])
+	method := UNKNOWN;
+	for(i := 0; i < len methods; i++)
+		if(meth == methods[i]) {
 			method = i;
-	if(method == -1)
-		return (nil, sprint("unknown method: %q", meth));
+			break;
+		}
 
 	(major, minor, verr) := parseversion(vers, origl);
 	if(verr != nil)
 		return (nil, verr);
+	if(urlstr == "")
+		return (nil, "empty path");
 	(u, err) := Url.unpack(urlstr);
 	if(err != nil)
 		return (nil, "bad url: "+err);
@@ -476,7 +478,7 @@ Req.read(b: ref Iobuf): (ref Req, string)
 	if(herr != nil)
 		return (nil, "bad headers: "+herr);
 
-	return (ref Req(method, u, major, minor, h, nil, nil), nil);
+	return (ref Req(method, meth, u, major, minor, h, nil, nil), nil);
 }
 
 nfc := 0;
