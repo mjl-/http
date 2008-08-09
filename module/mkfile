@@ -4,6 +4,3 @@ MODS=\
 	mhttp.m
 
 <mkmod
-
-nuke:QV:
-	
