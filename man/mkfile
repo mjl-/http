@@ -1,9 +1,8 @@
 <../mkconfig
 
-MODS=\
-	mhttp.m
+MAN=
 
-<mkmod
+<mkman
 
 nuke:QV:
 	
