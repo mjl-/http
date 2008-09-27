@@ -1,0 +1,112 @@
+.TH HGET 1
+.SH NAME
+hget \- http client
+.SH SYNOPSIS
+.B hget
+[
+.B -cdfpqv
+] [
+.B -m
+.I method
+] [
+.B -P
+.I body
+] [
+.B -H
+.I version
+] [
+.B -h
+.I header
+.I value
+] [
+.B -o
+.I file
+] [
+.B -x
+.I proxyaddr
+]
+.I url
+.SH DESCRIPTION
+.B Hget
+is a simple http client that requests an
+.I url
+and writes the resulting data to the standard output.
+This client supports quite a few of the features of the associated library, including:  ssl, compression negotiation, connecting through a proxy, issuing ``partial requests'' (for continuing a download).
+It uses the library in a straightforward manner, making it useful example code for using the library.
+.PP
+The options:
+.TP
+.B -c
+Continue downloading current file (by issuing a ``partial request'').
+Option
+.B -o
+required too.
+.TP
+.B -d
+Print debugging info.
+.TP
+.B -f
+Request fresh copy by setting the ``cache-control'' header in the request.
+.TP
+.B -p
+Send a body with request, and read the data to post from standard input.
+Only valid for the http method ``post'', so 
+.B -m
+is required too.
+.TP
+.B -q
+Be quiet.  Otherwise (the default), progress and some useful special case diagnostics are printed.
+Progress is represented by twenty dots if the file length is known, otherwise with one dot for every n seconds during which progress was made.
+.TP
+.B -v
+Be verbose.  Incompatible with
+.BR -q .
+.TP
+.BI -m " method"
+Use
+.I method
+as the request.
+.I Method
+is case-insensitive and should be one of:  ``get'' (the default), ``post'', ``head'' or ``trace''.
+.TP
+.BI -P " body"
+Like
+.B -p
+but use
+.I body
+as body instead of reading from standard input.
+.TP
+.BI -H " version"
+Use
+.I version
+as http version in the request.  Must be one of ``1.0'' or ``1.1''.
+.TP
+.BI -h " header value"
+Add the given
+.I header
+and
+.I value
+to the http request.  Note that this may cause an unexpected response that the http library is not prepared for to handled.
+.TP
+.BI -o " file"
+Do not write the body of the response to standard output (the default), but write to
+.I file
+instead.  If 
+.I file
+does not exist, it is created.  Otherwise it is truncated, unless
+.B -c
+was specified.
+.TP
+.BI -x " proxyaddr"
+Use the proxy at
+.I proxyaddr
+(a dial string, not an url) for issuing the request.
+
+.SH SOURCE
+.B /appl/cmd/hget.b
+.br
+.B /appl/lib/mhttp.b
+.br
+
+.SH BUGS
+This is work in progress, see the README for a list of bugs & todo's.

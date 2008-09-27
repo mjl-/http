@@ -1,0 +1,38 @@
+a few test cases.
+
+# simplest request
+hget http://www.ueber.net/
+hget -m get http://www.ueber.net/
+
+# try bogus post
+hget -m post http://www.ueber.net/
+# other ops
+hget -m head http://www.ueber.net/
+hget -m trace http://www.ueber.net/
+
+# try ssl (connection close makes sure we don't hang)
+hget -h connection close https://www.cia.gov/
+
+# try both http versions
+hget -d -H 1.0 http://www.ueber.net/
+hget -d -H 1.1 http://www.ueber.net/
+
+# use proxy, with different versions
+hget -x net!localhost!8000 -H 1.0 http://www.ueber.net/
+hget -x net!localhost!8000 -H 1.1 http://www.ueber.net/
+
+# with output file
+hget -o ueber.html http://www.ueber.net/
+hget -o ueber.html http://www.ueber.net/
+# continue completed file
+hget -q -c -o ueber.html http://www.ueber.net/
+# continue file (the start will remain "test" of course)
+echo -n test >ueber.html
+hget -q -c -o ueber.html http://www.ueber.net/
+
+
+# redirect
+hget http://www.ueber.net/cgi/lyrics
+hget -n http://www.ueber.net/cgi/lyrics
+# referer on redirect
+hget -nR http://www.ueber.net/cgi/lyrics

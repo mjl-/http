@@ -1,8 +1,10 @@
 <../../mkconfig
 
 TARG=\
+	hget.dis\
 
 SYSMODULES=\
+	mhttp.m\
 	arg.m\
 	bufio.m\
 	daytime.m\

@@ -1,12 +1,62 @@
-http library
-http client library and http fetcher will follow later.
-http request parsing is also left for soon.
+# status
 
-mhttp.m will be renamed to http.m later, after i have replaced a
-previous version locally.
-
-to use, make a "mkconfig" (symlink/bind the one from your inferno install
-here) and "mk install".
+useful, but probably has some buglets lingering in rarely exercised
+code paths.
 
 
-todo:
+# about
+
+this is a http library, and simple sample http download client.
+the library supports both reading & writing requests & responses.
+
+some features:
+
+- ssl (using inferno's ssl device)
+- can do deflate negotiation for requests
+- supports low-level operations (reading/writing request/response)
+  as well as high-level operations (pass request, get file descriptor
+  to read response from (hiding intricacies of ssl, deflate and/or
+  http chunks)
+- supports http 1.0/1.1 and versionless "0.9"
+- can request through proxy
+
+
+# install
+
+to use, make a "mkconfig" (symlink/bind the one from your inferno
+install here) and "mk install".
+
+
+# download
+
+see http://www.ueber.net/code/r/http for instructions.
+
+
+# todo:
+
+- lib: don't reinvent url parsing?  but use (one of the two?) url
+  libs in inferno.
+- lib: rename it from mhttp to http, once i have modified all my
+  local programs to use this new lib (instead of an older version)
+- lib: use factotum to deal with auth requests?
+- lib: do ssl better, e.g. with verifying certificates.  but that
+  is a more generic inferno problem.  same with problem that
+  non-"connection-close" connections hang until timeout (ssl libs
+  read() is like a readn(), and we use bufio so more data is requested
+  then is present).
+- lib: add higher-level functions for retrieving urls?  that do
+  redirects too?  old lib had that.
+- lib: detect content-range in response, and read less.  now we
+  never complete reading the response body.
+- lib: allow some events on high-level request (which handles
+  redirects) send info on a channel (info about redirections).  perhaps
+  other info too.
+- lib: check ndb to see if a proxy should be used, not per request?
+  that means all programs using http lib get proxy stuff for free,
+  without having to set anything.  but cannot be disabled either...
+- lib: for ssl, use CONNECT to talk to the remote host?
+
+- write manual page for library?  once it stabilizes
+
+- hget: reinstate -n for allowing redirs, and -R for sending referers.
+- hget: reinstate -q for being more verbose.
