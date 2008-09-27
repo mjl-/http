@@ -6,9 +6,16 @@ hget -m get http://www.ueber.net/
 
 # try bogus post
 hget -m post http://www.ueber.net/
-# other ops
+
+# correct post
+hget -m post -P 'artist=jeff+buckley&title=yard+of+blonde+girls' http://www.ueber.net/lyrics/fetch
+echo -n 'artist=jeff+buckley&title=yard+of+blonde+girls' | hget -m post -p http://www.ueber.net/lyrics/fetch
+
+
+# other methods
 hget -m head http://www.ueber.net/
 hget -m trace http://www.ueber.net/
+
 
 # try ssl (connection close makes sure we don't hang)
 hget -h connection close https://www.cia.gov/

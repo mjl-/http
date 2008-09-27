@@ -27,6 +27,12 @@ to use, make a "mkconfig" (symlink/bind the one from your inferno
 install here) and "mk install".
 
 
+# licence & author
+
+this code is in the public domain, written by mechiel lukkien,
+reachable at mechiel@ueber.net or mechiel@xs4all.nl.
+
+
 # download
 
 see http://www.ueber.net/code/r/http for instructions.
