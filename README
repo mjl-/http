@@ -51,7 +51,7 @@ see http://www.ueber.net/code/r/http for instructions.
   read() is like a readn(), and we use bufio so more data is requested
   then is present).
 - lib: add higher-level functions for retrieving urls?  that do
-  redirects too?  old lib had that.
+  redirects too?  old lib had that.  get() needs to be improved.
 - lib: detect content-range in response, and read less.  now we
   never complete reading the response body.
 - lib: allow some events on high-level request (which handles

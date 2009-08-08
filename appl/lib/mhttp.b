@@ -1,30 +1,26 @@
 implement Http;
 
 include "sys.m";
+	sys: Sys;
+	sprint: import sys;
 include "bufio.m";
+	bufio: Bufio;
+	Iobuf: import bufio;
 include "string.m";
+	str: String;
 include "filter.m";
+	inflate: Filter;
 include "encoding.m";
+	base64: Encoding;
 include "keyring.m";
 include "security.m";
 include "pkcs.m";
 include "asn1.m";
 include "sslsession.m";
 include "ssl3.m";
+	ssl3: SSL3;
+	Context: import ssl3;
 include "mhttp.m";
-
-sys: Sys;
-bufio: Bufio;
-str: String;
-base64: Encoding;
-inflate: Filter;
-ssl3: SSL3;
-
-Iobuf: import bufio;
-Rq: import Filter;
-Context: import ssl3;
-prefix: import str;
-sprint, fprint, print, FileIO: import sys;
 
 methods := array[] of {"<UNKNOWN>", "OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "TRACE", "CONNECT", "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE", "LOCK", "UNLOCK"};
 versions := array[] of {"HTTP/1.0", "HTTP/1.1"};
@@ -105,15 +101,40 @@ versionstr(version: int): string
 	return versions[version];
 }
 
+
+get(u: ref Url, h: ref Hdrs): (ref Req, ref Resp, ref Sys->FD, string)
+{
+	if(h == nil)
+		h = Hdrs.new(nil);
+	req := Req.mk(GET, u, Http->HTTP_11, h);
+	resp: ref Resp;
+	rfd: ref Sys->FD;
+	(fd, err) := req.dial();
+	if(err == nil)
+		err = req.write(fd);
+	if(err == nil)
+		b := bufio->fopen(fd, Bufio->OREAD);
+	if(err == nil)
+		(resp, err) = Resp.read(b);
+	if(err == nil && resp.st[0] != '2')
+		err = sprint("request unsuccessful: %s (%s)", resp.st, resp.stmsg);
+	if(err == nil && !resp.hasbody(GET))
+		err = "no body in response";
+	if(err == nil)
+		(rfd, err) = resp.body(b);
+	return (req, resp, rfd, err);
+}
+
+
 Url.unpack(s: string): (ref Url, string)
 {
 	scheme := "http";
-	if(prefix("http://", s))
+	if(str->prefix("http://", s))
 		s = s[len "http://":];
-	else if(prefix("https://", s)) {
+	else if(str->prefix("https://", s)) {
 		s = s[len "https://":];
 		scheme = "https";
-	} else if(prefix("//", s))
+	} else if(str->prefix("//", s))
 		s = s[len "//":];
 	usessl := scheme == "https";
 	(addr, path) := str->splitl(s, "/");
@@ -353,11 +374,9 @@ Hdrs.del(h: self ref Hdrs, k, v: string)
 
 Hdrs.find(h: self ref Hdrs, k: string): (int, string)
 {
-say(sprint("Hdrs.find k=%q", k));
 	l := h.findall(k);
 	if(l == nil)
 		return (0, nil);
-say("have hdr");
 	return (1, hd l);
 }
 
@@ -432,7 +451,7 @@ Req.pack(r: self ref Req): string
 
 Req.write(r: self ref Req, fd: ref Sys->FD): string
 {
-	if(fprint(fd, "%s", r.pack()) < 0)
+	if(sys->fprint(fd, "%s", r.pack()) < 0)
 		return sprint("%r");
 	say("request: "+r.pack());
 	if(r.body != nil && len r.body > 0)
@@ -537,7 +556,7 @@ Resp.pack(r: self ref Resp): string
 
 Resp.write(r: self ref Resp, fd: ref Sys->FD): string
 {
-	if(fprint(fd, "%s", r.pack()) < 0)
+	if(sys->fprint(fd, "%s", r.pack()) < 0)
 		return sprint("%r");
 	return nil;
 }
@@ -608,6 +627,8 @@ pushchunked(b: ref Iobuf): (ref Sys->FD, string)
 {
 	f := sprint("fcn%d.%d", sys->pctl(0, nil), nfc++);
 	fio := sys->file2chan("#shttp", f);
+	if(fio == nil)
+		return (nil, sprint("file2chan: %r"));
 	spawn fcchunked(fio, b);
 	fd := sys->open(sprint("#shttp/%s", f), Sys->OREAD);
 	if(fd == nil)
@@ -615,7 +636,7 @@ pushchunked(b: ref Iobuf): (ref Sys->FD, string)
 	return (fd, nil);
 }
 
-fcchunked(fio: ref FileIO, b: ref Iobuf)
+fcchunked(fio: ref Sys->FileIO, b: ref Iobuf)
 {
 	firstc := 1;
 	clen := 0;
@@ -685,6 +706,8 @@ pushlength(b: ref Iobuf, n: int): (ref Sys->FD, string)
 {
 	f := sprint("fcn%d.%d", sys->pctl(0, nil), nfc++);
 	fio := sys->file2chan("#shttp", f);
+	if(fio == nil)
+		return (nil, sprint("file2chan: %r"));
 	spawn fclength(fio, b, n);
 	fd := sys->open(sprint("#shttp/%s", f), Sys->OREAD);
 	if(fd == nil)
@@ -692,7 +715,7 @@ pushlength(b: ref Iobuf, n: int): (ref Sys->FD, string)
 	return (fd, nil);
 }
 
-fclength(fio: ref FileIO, b: ref Iobuf, n: int)
+fclength(fio: ref Sys->FileIO, b: ref Iobuf, n: int)
 {
 	for(;;) alt {
 	(nil, count, nil, rc) := <-fio.read =>
@@ -729,6 +752,8 @@ pusheof(b: ref Iobuf): (ref Sys->FD, string)
 	say("PUSHEOF");
 	f := sprint("fcn%d.%d", sys->pctl(0, nil), nfc++);
 	fio := sys->file2chan("#shttp", f);
+	if(fio == nil)
+		return (nil, sprint("file2chan: %r"));
 	spawn fceof(fio, b);
 	fd := sys->open(sprint("#shttp/%s", f), Sys->OREAD);
 	if(fd == nil)
@@ -736,7 +761,7 @@ pusheof(b: ref Iobuf): (ref Sys->FD, string)
 	return (fd, nil);
 }
 
-fceof(fio: ref FileIO, b: ref Iobuf)
+fceof(fio: ref Sys->FileIO, b: ref Iobuf)
 {
 	eof := 0;
 	for(;;) alt {
@@ -768,6 +793,8 @@ pushinflate(fd: ref Sys->FD, gzip: int): (ref Sys->FD, string)
 	say("PUSHINFLATE");
 	f := sprint("fcn%d.%d", sys->pctl(0, nil), nfc++);
 	fio := sys->file2chan("#shttp", f);
+	if(fio == nil)
+		return (nil, sprint("file2chan: %r"));
 	spawn fcinflate(fio, fd, gzip);
 	nfd := sys->open(sprint("#shttp/%s", f), Sys->OREAD);
 	if(nfd == nil)
@@ -775,7 +802,7 @@ pushinflate(fd: ref Sys->FD, gzip: int): (ref Sys->FD, string)
 	return (nfd, nil);
 }
 
-fcinflate(fio: ref FileIO, fd: ref Sys->FD, gzip: int)
+fcinflate(fio: ref Sys->FileIO, fd: ref Sys->FD, gzip: int)
 {
 	pid: int;
 	flags := "";
@@ -850,6 +877,8 @@ pushssl(origfd: ref Sys->FD, addr: string): (ref Sys->FD, string)
 
 	f := sprint("fcn%d.%d", sys->pctl(0, nil), nfc++);
 	fio := sys->file2chan("#shttp", f);
+	if(fio == nil)
+		return (nil, sprint("file2chan: %r"));
 	spawn fcssl(fio, sslx);
 	fd := sys->open(sprint("#shttp/%s", f), Sys->ORDWR);
 	if(fd == nil)
@@ -857,7 +886,7 @@ pushssl(origfd: ref Sys->FD, addr: string): (ref Sys->FD, string)
 	return (fd, nil);
 }
 
-fcssl(fio: ref FileIO, sslx: ref Context)
+fcssl(fio: ref Sys->FileIO, sslx: ref Context)
 {
 	#say("fcssl: new");
 	eof := 0;
@@ -905,7 +934,7 @@ kill(pid: int)
 {
 	fd := sys->open(sprint("/prog/%d/ctl", pid), Sys->OWRITE);
 	if(fd != nil)
-		fprint(fd, "kill");
+		sys->fprint(fd, "kill");
 }
 
 say(s: string)

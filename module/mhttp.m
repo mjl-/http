@@ -7,7 +7,7 @@ Http: module {
 	HTTP_10, HTTP_11:	con iota;
 	UNKNOWN, OPTIONS, GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT, PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK:	con iota;
 
-	#get:	fn(url: ref Url, hdrs: list of (string, string)): (ref Rbuf, string);
+	get:	fn(u: ref Url, h: ref Hdrs): (ref Req, ref Resp, ref Sys->FD, string);
 	#post:	fn(url: ref Url, hdrs: list of (string, string), data: array of byte): (ref Rbuf, string);
 	#retrieve:	fn(req: ref Request): (ref Response, string);
 	#request:	fn(req: ref Request): (ref Response, string);
@@ -47,7 +47,7 @@ Http: module {
 		mk:	fn(method: int, url: ref Url, version: int, h: ref Hdrs): ref Req;
 		pack:	fn(r: self ref Req): string;
 		write:	fn(r: self ref Req, fd: ref Sys->FD): string;
-		read:	fn(b: ref Iobuf): (ref Req, string);
+		read:	fn(b: ref Bufio->Iobuf): (ref Req, string);
 		dial:	fn(u: self ref Req): (ref Sys->FD, string);
 		version:	fn(r: self ref Req): int;
 	};
@@ -60,9 +60,9 @@ Http: module {
 		mk:	fn(version: int, st, stmsg: string, h: ref Hdrs): ref Resp;
 		pack:	fn(r: self ref Resp): string;
 		write:	fn(r: self ref Resp, fd: ref Sys->FD): string;
-		read:	fn(b: ref Iobuf): (ref Resp, string);
+		read:	fn(b: ref Bufio->Iobuf): (ref Resp, string);
 		hasbody:	fn(r: self ref Resp, reqmethod: int): int;
-		body:	fn(r: self ref Resp, b: ref Iobuf): (ref Sys->FD, string);
+		body:	fn(r: self ref Resp, b: ref Bufio->Iobuf): (ref Sys->FD, string);
 		version:	fn(r: self ref Resp): int;
 	};
 
@@ -70,7 +70,7 @@ Http: module {
 		l:	list of (string, string);
 
 		new:	fn(l: list of (string, string)): ref Hdrs;
-		read:	fn(b: ref Iobuf): (ref Hdrs, string);
+		read:	fn(b: ref Bufio->Iobuf): (ref Hdrs, string);
 		set:	fn(h: self ref Hdrs, k, v: string);
 		add:	fn(h: self ref Hdrs, k, v: string);
 		del:	fn(h: self ref Hdrs, k, v: string);
