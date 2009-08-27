@@ -1,4 +1,5 @@
-Http: module {
+Http: module
+{
 	PATH:	con "/dis/lib/mhttp.dis";
 
 	init:	fn(bufio: Bufio);

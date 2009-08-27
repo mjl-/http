@@ -136,6 +136,8 @@ Url.unpack(s: string): (ref Url, string)
 		scheme = "https";
 	} else if(str->prefix("//", s))
 		s = s[len "//":];
+	else
+		return (nil, sprint("missing scheme"));
 	usessl := scheme == "https";
 	(addr, path) := str->splitl(s, "/");
 	(host, port) := str->splitl(addr, ":");

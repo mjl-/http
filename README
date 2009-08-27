@@ -26,6 +26,9 @@ some features:
 to use, make a "mkconfig" (symlink/bind the one from your inferno
 install here) and "mk install".
 
+when building from within inferno, insert SYSHOST=Inferno and ROOT=
+in the mk invocations to override the values in the mkconfig.
+
 
 # licence & author
 
