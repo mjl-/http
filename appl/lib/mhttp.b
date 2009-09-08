@@ -129,15 +129,14 @@ get(u: ref Url, h: ref Hdrs): (ref Req, ref Resp, ref Sys->FD, string)
 Url.unpack(s: string): (ref Url, string)
 {
 	scheme := "http";
-	if(str->prefix("http://", s))
+	if(str->prefix("http://", s)) {
 		s = s[len "http://":];
-	else if(str->prefix("https://", s)) {
+	} else if(str->prefix("https://", s)) {
 		s = s[len "https://":];
 		scheme = "https";
-	} else if(str->prefix("//", s))
+	} else if(str->prefix("//", s)) {
 		s = s[len "//":];
-	else
-		return (nil, sprint("missing scheme"));
+	}
 	usessl := scheme == "https";
 	(addr, path) := str->splitl(s, "/");
 	(host, port) := str->splitl(addr, ":");
