@@ -4,7 +4,7 @@ useful, but probably has some buglets lingering in rarely exercised
 code paths.
 
 
-# about
+# intro
 
 this is a http library, and simple sample http download client.
 the library supports both reading & writing requests & responses.
@@ -21,10 +21,17 @@ some features:
 - can request through proxy
 
 
+# download
+
+get the latest version from:
+
+	http://www.ueber.net/code/r/http
+
+
 # install
 
-to use, make a "mkconfig" (symlink/bind the one from your inferno
-install here) and "mk install".
+make sure you have $ROOT set, now "mk install" to compile and install
+the files.
 
 when building from within inferno, insert SYSHOST=Inferno and ROOT=
 in the mk invocations to override the values in the mkconfig.
@@ -34,11 +41,6 @@ in the mk invocations to override the values in the mkconfig.
 
 this code is in the public domain, written by mechiel lukkien,
 reachable at mechiel@ueber.net or mechiel@xs4all.nl.
-
-
-# download
-
-see http://www.ueber.net/code/r/http for instructions.
 
 
 # todo:
