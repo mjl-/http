@@ -12,7 +12,7 @@ the library supports both reading & writing requests & responses.
 some features:
 
 - ssl (using inferno's ssl device)
-- can do deflate negotiation for requests
+- can do gzip/deflate negotiation for requests
 - supports low-level operations (reading/writing request/response)
   as well as high-level operations (pass request, get file descriptor
   to read response from (hiding intricacies of ssl, deflate and/or
@@ -40,10 +40,14 @@ in the mk invocations to override the values in the mkconfig.
 # licence & author
 
 this code is in the public domain, written by mechiel lukkien,
-reachable at mechiel@ueber.net or mechiel@xs4all.nl.
+reachable at mechiel@ueber.net.
 
 
 # todo:
+
+- split some of mhttp.m into an httpclient library, with higher-level
+  functionality (e.g. following redirects, handling range responses).
+  rewrite hget to use it.
 
 - lib: don't reinvent url parsing?  but use (one of the two?) url
   libs in inferno.
@@ -55,19 +59,14 @@ reachable at mechiel@ueber.net or mechiel@xs4all.nl.
   non-"connection-close" connections hang until timeout (ssl libs
   read() is like a readn(), and we use bufio so more data is requested
   then is present).
-- lib: add higher-level functions for retrieving urls?  that do
-  redirects too?  old lib had that.  get() needs to be improved.
-- lib: detect content-range in response, and read less.  now we
-  never complete reading the response body.
-- lib: allow some events on high-level request (which handles
-  redirects) send info on a channel (info about redirections).  perhaps
-  other info too.
 - lib: check ndb to see if a proxy should be used, not per request?
   that means all programs using http lib get proxy stuff for free,
   without having to set anything.  but cannot be disabled either...
 - lib: for ssl, use CONNECT to talk to the remote host?
 
 - write manual page for library?  once it stabilizes
+- lib: document somewhere that using "accept-encoding: deflate"
+  won't work with some webservers since those webservers return rfc1951
+  deflate data, instead of rfc1950 zlib.
 
 - hget: reinstate -n for allowing redirs, and -R for sending referers.
-- hget: reinstate -q for being more verbose.

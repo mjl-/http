@@ -824,31 +824,31 @@ fcinflate(fio: ref Sys->FileIO, fd: ref Sys->FD, gzip: int)
 			kill(pid);
 			return;
 		}
-		if(pid >= 0 && len buf == 0) {
-			pick m := <- mc {
-			Fill =>
-				say(sprint("read,inflate: fill len=%d", len m.buf));
-				if((m.reply <-= sys->read(fd, m.buf, len m.buf)) < 0) {
-					rc <-= (nil, sprint("%r"));
-					return;
-				}
-			Result =>
-				say(sprint("read,inflate: result len=%d", len m.buf));
-				buf = array[len m.buf] of byte;
-				buf[:] = m.buf;
-				m.reply <-= 0;
-			Finished =>
-				say(sprint("read,inflate: finished leftover-len=%d", len m.buf));
-			Info =>
-				say("inflate: "+m.msg);
-			Error =>
-				rc <-= (nil, sprint("inflate: %s", m.e));
-				return;
-			* =>
-				rc <-= (nil, "inflate: unexpected response from filter");
-				kill(pid);
+		while(pid >= 0 && len buf == 0)
+		pick m := <-mc {
+		Fill =>
+			say(sprint("read,inflate: fill len=%d", len m.buf));
+			if((m.reply <-= sys->read(fd, m.buf, len m.buf)) < 0) {
+				rc <-= (nil, sprint("%r"));
 				return;
 			}
+		Result =>
+			say(sprint("read,inflate: result len=%d", len m.buf));
+			buf = array[len m.buf] of byte;
+			buf[:] = m.buf;
+			m.reply <-= 0;
+		Finished =>
+			say(sprint("read,inflate: finished leftover-len=%d", len m.buf));
+			pid = -1;
+		Info =>
+			say("inflate: "+m.msg);
+		Error =>
+			rc <-= (nil, sprint("inflate: %s", m.e));
+			return;
+		* =>
+			rc <-= (nil, "inflate: unexpected response from filter");
+			kill(pid);
+			return;
 		}
 
 		take := count;
